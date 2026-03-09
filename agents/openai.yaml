@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continuous Loop Prompt"
+  short_description: "Build persistent Codex loop prompts and run commands"
+  default_prompt: "Use $continuous-loop-prompt to turn my short requirement into a reusable loop prompt, concrete validation checks, and one command that starts looping."
