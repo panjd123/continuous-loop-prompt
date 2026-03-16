@@ -1,4 +1,4 @@
 interface:
-  display_name: "Continuous Loop Prompt"
-  short_description: "Build persistent Codex loop prompts and run commands"
-  default_prompt: "Use $continuous-loop-prompt to turn my short requirement into a reusable loop prompt, concrete validation checks, and one command that starts looping."
+  display_name: "持续循环提示词"
+  short_description: "生成可持续运行的 Codex 循环提示词与启动命令"
+  default_prompt: "使用 $continuous-loop-prompt，把我的简短需求整理成可复用的循环提示词、明确的验证检查，以及一条可直接启动循环的命令。"

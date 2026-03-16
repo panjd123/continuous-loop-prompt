@@ -1,50 +1,50 @@
-# Run Command Patterns
+# 运行命令模式
 
-Always return exactly one runnable command.
-The generated `run_codex_loop.sh` must already contain baked defaults for
-prompt/state/original-prompt/work-status/progress/sleep, and it should live in
-a **fresh worktree**. The final command should normally be a `cd` into that
-fresh worktree followed by `./run_codex_loop.sh`.
+最终必须只返回**一条**可直接执行的命令。
+生成出来的 `run_codex_loop.sh` 必须已经内置
+prompt / state / original-prompt / work-status / progress / sleep 的默认值，
+并且它必须位于**fresh worktree**中。最终命令通常应该是先 `cd` 进入该
+fresh worktree，再执行 `./run_codex_loop.sh`。
 
-## Preferred (fresh worktree already prepared)
+## 优先形式（fresh worktree 已准备好）
 
 ```bash
 cd /abs/path/to/fresh-worktree && ./run_codex_loop.sh
 ```
 
-Use this when the skill has already:
-- created a fresh worktree
-- written the prompt under the canonical state dir
-- installed the runner in that worktree
+当技能已经完成以下工作时，使用这一形式：
 
-The runner must guarantee:
-- runtime prompt includes original user prompt + previous work-status content
-- each checklist item passes only after the same check succeeds in two distinct rounds
-- work-status file is updated each round (default strict mode)
-- end-of-round re-evaluation can rewrite/reset wrong prior plans and revoke wrong prior PASS
-- default sleep is `0` unless the user explicitly requests a non-zero delay
-- when prompt comes from a file, edits to that prompt file are picked up on the next round without restarting the loop
+- 已创建 fresh worktree
+- 已把 prompt 写入规范状态目录
+- 已在该 worktree 中安装 runner
 
-## Bootstrap Helper (during skill execution)
+runner 必须保证：
 
-During skill execution, first use the bootstrap helper to create the fresh worktree
-and install the runner:
+- 运行时 prompt 会包含原始用户提示词以及上一轮 work-status 内容
+- 每个检查项在一次成功且有证据记录后即可 PASS，但后续若出现反证必须撤销 PASS
+- work-status 文件默认每轮都必须更新
+- 每轮结束都允许重写 / 重置错误的旧计划，并撤销错误的旧 PASS
+- 默认 `sleep` 为 `0`，除非用户明确要求非零延迟
+- 当 prompt 来自文件时，该文件的修改会在下一轮自动生效，无需重启循环
+
+## Bootstrap 辅助命令（技能执行阶段）
+
+在技能执行过程中，先使用 bootstrap 辅助脚本创建 fresh worktree 并安装 runner：
 
 ```bash
 bash /root/.codex/skills/continuous-loop-prompt/scripts/bootstrap_fresh_loop_worktree.sh \
   --source-repo .
 ```
 
-After the skill has prepared the new worktree and written the prompt there, return
-a simple:
+在技能把新 worktree 和 prompt 都准备好之后，返回一条简单命令：
 
 ```bash
 cd /abs/path/to/fresh-worktree && ./run_codex_loop.sh
 ```
 
-Do not return a pseudo command that depends on manual edits in the old source tree.
+不要返回那种仍依赖旧源码目录中手工修改的伪命令。
 
-## Return Style
+## 返回风格
 
-- Return command as plain code block.
-- Ensure command is copy-run ready.
+- 把命令放在普通代码块中返回。
+- 确保命令可以直接复制执行。

@@ -1,23 +1,21 @@
 ---
 name: continuous-loop-prompt
 description: >-
-  Turn a user-provided detailed prompt file into a production-ready persistent
-  Codex loop package in a fresh git worktree: inspect current implementation
-  progress and legacy state, normalize everything into the new canonical state
-  layout, then output one command that starts the loop immediately.
+  把用户提供的详细提示词文件转换为可直接运行的持久 Codex 循环包：在全新的
+  git worktree 中盘点当前实现进度和旧状态，统一迁移到新的规范状态目录，并输出
+  一条可立即启动循环的命令。
 ---
 
-# Continuous Loop Prompt
+# 持续循环 Prompt
 
-## Overview
+## 概览
 
-Generate a loop-ready prompt and launch command from a detailed prompt file.
-Do this in a **fresh git worktree**, not in the current source tree, and make the
-generated loop use the **new canonical state layout** from the first round.
+把一份详细提示词文件整理成可直接启动的 loop prompt 和运行命令。
+必须在**全新的 git worktree**中完成，而不是直接在当前源码目录里操作；并且从首轮开始就使用**新的规范状态布局**。
 
-## Canonical Layout
+## 规范状态布局
 
-The new layout is authoritative and must be described from its own perspective:
+新的布局是唯一权威布局，必须按它自己的视角来描述：
 
 - `<state-dir>/loop_prompt.md`
 - `<state-dir>/original_user_prompt.md`
@@ -31,199 +29,187 @@ The new layout is authoritative and must be described from its own perspective:
 - `<state-dir>/messages/`
 - `<state-dir>/legacy/`
 
-Older split layouts are **legacy inputs only**. Examples:
+旧的分散式布局只作为**只读迁移输入**。例如：
 
-- repo-root `loop_prompt.md`
-- split `todo.md` + `detailed_plan.md`
-- standalone `history_compact.md`
-- prior `.codex-*` state directories
-- progress files outside the state directory
+- repo 根目录下的 `loop_prompt.md`
+- 拆分的 `todo.md` + `detailed_plan.md`
+- 独立的 `history_compact.md`
+- 旧的 `.codex-*` 状态目录
+- 位于状态目录之外的进展文件
 
-If legacy state artifacts are present in the fresh worktree, rotate them into
-`<state-dir>/legacy/bootstrap_preexisting_<timestamp>/` before using the new
-layout. Do not continue writing into the old layout.
+如果 fresh worktree 中已经存在旧状态产物，必须先把它们转移到
+`<state-dir>/legacy/bootstrap_preexisting_<timestamp>/`，再开始使用新布局。
+不要继续往旧布局写内容。
 
-## Workflow
+## 工作流程
 
-1. Treat the user-provided prompt file as authoritative.
-- Do not reinterpret or expand the request into new objectives.
-- Do not add new deliverables or acceptance criteria beyond the provided file.
+1. 把用户提供的提示词文件视为权威输入。
+- 不要擅自重解释或扩展成新的目标。
+- 不要在文件之外新增交付物或验收标准。
 
-2. Create a fresh worktree before writing the loop package.
-- Every new loop engagement must run in a new git worktree directory.
-- Do not reuse the source repo working directory as the loop directory.
-- Use the bundled helper:
+2. 在写 loop 包之前先创建新的 worktree。
+- 每一次新的循环任务都必须运行在新的 git worktree 目录中。
+- 不要复用源仓库当前工作目录作为循环目录。
+- 使用内置脚本：
   - `/root/.codex/skills/continuous-loop-prompt/scripts/bootstrap_fresh_loop_worktree.sh`
-- The helper must:
-  - create a fresh worktree
-  - install the runner there
-  - normalize defaults to the canonical state layout
-  - rotate any pre-existing state residue into `legacy/`
+- 该脚本必须：
+  - 创建新的 worktree
+  - 在其中安装 runner
+  - 把默认路径统一到规范状态布局
+  - 把已有状态残留转移到 `legacy/`
 
-3. Bootstrap context with subagents before drafting the prompt.
-- Spawn one or more **read-only** subagents early.
-- At minimum cover these two inventories in parallel:
-  - current implementation progress from code / build targets / logs
-  - legacy state / progress / prompt / audit files that may already capture partial completion
-- If helpful, spawn a third read-only subagent for validation / evidence mapping.
-- Do not assume the project starts from zero.
-- If the repo already has partially completed work, explicitly carry that into the new
-  `work_status.md` and `progress.md`.
-- If the repo already fully satisfies part of the requested work, record that with
-  evidence instead of pretending it is still todo.
-- Treat prior notes as hints, not truth; prefer current code and fresh command outputs.
+3. 在起草 prompt 之前先用 subagent 做 bootstrap 盘点。
+- 尽早启动一个或多个**只读** subagent。
+- 至少并行覆盖这两类盘点：
+  - 从代码 / 构建目标 / 日志中盘点当前实现进度
+  - 从旧状态 / 旧进展 / 旧 prompt / 审计文件中盘点已有工作
+- 必要时可增加第三个只读 subagent，用于验证证据和需求的映射。
+- 不要假设项目从零开始。
+- 如果仓库里已经有部分工作完成，必须把这些内容明确写入新的
+  `work_status.md` 和 `progress.md`。
+- 如果仓库已经完全满足部分需求，应记录证据，而不是假装它仍然待做。
+- 旧笔记只能作为线索，不能直接当事实；优先相信当前代码和最新命令输出。
 
-4. Draft the persistent loop prompt.
-- Start from [prompt-template.md](references/prompt-template.md).
-- Wrap the user-provided prompt file content, adding only:
-  - non-interactive loop header
-  - canonical state-layout rules
-  - legacy-layout migration rules
-  - bootstrap subagent requirement
-  - mandatory per-round file reads/checks
-  - concise round output format requirements
-- If the prompt file does not specify explicit paths, set defaults under `<state-dir>`:
-  - prompt: `<state-dir>/loop_prompt.md`
-  - original prompt: `<state-dir>/original_user_prompt.md`
-  - progress: `<state-dir>/progress.md`
-  - work status: `<state-dir>/work_status.md`
-  - history archive: `<state-dir>/legacy/`
-- Require `progress.md` to stay user-facing and concise: overall status,
-  completed / in-progress / missing work, key effects or metrics, open risks,
-  and next recommended slice. Do not let it turn into a round-by-round log.
-- Require `work_status.md` to include both:
-  - current execution state
-  - durable compressed history / recovered prior progress
-- Make it explicit that evidence-backed state recovery is valid progress: the agent
-  does not need to force unnecessary code edits merely to appear active.
-- Require each round input to include both original user prompt and previous
-  work-status / implementation / check status.
-- Require end-of-round re-evaluation: if old plan is wrong, rewrite/reset it.
-- Require validation rollback: if previously PASS is now suspicious/wrong, revoke it.
-- Keep one primary `In Progress` item for tracking at any time; closely related subitems may still be completed in the same round and then folded into that item or moved directly to `Done`.
-- Require the first bootstrap round to use subagents when the loop is freshly created
-  or when `work_status.md` does not yet contain a reliable recovered baseline.
-- The generated `run_codex_loop.sh` must embed all default runtime paths directly in
-  the file so it can be launched as `./run_codex_loop.sh`.
-- Unless the user explicitly requests otherwise, bake `sleep=0` into the runner.
-- The runner must hot-reload the prompt file every round when the prompt comes from
-  `--prompt-file` or the baked default prompt path.
-- The prompt should explicitly tell the agent to organize each round around one
-  primary, reasonably scoped, semantically coherent, and fully verifiable work
-  package, while leaving the exact amount of code / subitems to model judgment.
-  Closely related work that improves coherence or avoids repeated tiny rounds
-  should be completed together when practical. Still require immediate
-  rollback/isolation when errors appear.
-- The prompt should explicitly discourage fake churn: if a round's best outcome is
-  recovering already-finished progress into the new state files or proving that a
-  requested slice is already done, that is acceptable and should be recorded cleanly.
-- The prompt should require long-running loops to compress durable history directly
-  into `work_status.md` and archive stale raw logs under `legacy/`.
-- The prompt should explicitly cap active working-set files at about 300 lines where
-  practical (`progress`, `work_status`); if either exceeds roughly 600 lines, the
-  agent should compress it that round.
+4. 起草持久循环 prompt。
+- 以 [prompt-template.md](references/prompt-template.md) 为基础。
+- 包装用户提供的提示词文件，只补充以下内容：
+  - 非交互循环头部
+  - 规范状态布局规则
+  - 旧布局迁移规则
+  - bootstrap subagent 要求
+  - 每轮强制读取 / 检查规则
+  - 简洁的每轮输出格式要求
+- 如果提示词文件没有明确路径，就默认放在 `<state-dir>` 下：
+  - prompt：`<state-dir>/loop_prompt.md`
+  - 原始提示词：`<state-dir>/original_user_prompt.md`
+  - progress：`<state-dir>/progress.md`
+  - work status：`<state-dir>/work_status.md`
+  - 历史归档：`<state-dir>/legacy/`
+- 要求 `progress.md` 保持面向用户且简洁：包含总体状态、已完成 / 进行中 / 尚缺工作、关键效果或指标、开放风险、下一步建议切片。不要把它写成逐轮流水账。
+- 要求 `progress.md` 使用直接、压缩的语言：不要把篇幅浪费在已经完成的实现细节、临时排障笔记，或已不再影响用户目标和下一步工作的内容上。
+- 要求 `work_status.md` 同时包含：
+  - 当前执行状态
+  - 持久压缩历史 / 恢复出的旧进度
+- prompt 必须明确要求代理在 loop 启动 / bootstrap 时记录当时的基线 commit（例如 `git rev-parse HEAD` 写入 `work_status.md`）；后续维护、清理过期文件，或移除临时 debug 代码时，要优先与这个基线对照，判断哪些是本循环期间引入或应该回收的内容。
+- 明确指出：基于证据恢复状态本身就是有效进展，代理不需要为了“看起来在工作”而强行制造代码改动。
+- 要求每轮输入都包含原始用户提示词以及上一轮 work status / 实现 / 检查状态。
+- 要求每轮结束都重新审视计划：如果旧计划不对，就直接重写或重置。
+- 要求校验可回滚：如果先前的 PASS 现在变得可疑或错误，必须撤销。
+- 任一时刻只保留一个主要 `In Progress` 项；同轮完成的紧密相关子项可以折叠进去，或直接移入 `Done`。
+- 如果循环是新建的，或者 `work_status.md` 还没有可靠的恢复基线，则首轮 bootstrap 必须使用 subagent。
+- 生成的 `run_codex_loop.sh` 必须把默认运行路径直接写入文件，使其可通过 `./run_codex_loop.sh` 直接启动。
+- 除非用户明确要求，否则 runner 内置 `sleep=0`。
+- 当 prompt 来源于 `--prompt-file` 或内置默认 prompt 路径时，runner 必须在每轮热加载该文件。
+- prompt 必须明确要求代理以一个主要、范围合理、语义完整、可充分验证的工作包来组织每一轮，同时允许模型自行判断这一轮应包含多少代码或多少相关子项。
+- 紧密相关、共享验证路径、一起完成更连贯的改动，应尽量在同一轮做完，避免无意义的小步重复。
+- prompt 必须明确反对“假推进”：如果某一轮最好的结果只是把已完成工作恢复到状态文件里，或者证明某个切片其实已经完成，这仍然是可接受结果，应被干净地记录下来。
+- prompt 必须要求长周期循环把持久历史直接压缩进 `work_status.md`，并把陈旧原始日志归档到 `legacy/`。
+- prompt 必须明确要求每 10 轮做一次高质量历史刷新（10、20、30……）：停止继续按轮次堆叠笔记，把历史改写为以任务和当前决策为中心的压缩状态，只保留当前仍重要的内容，把已解决区域收敛为简短结论和证据指针。
+- 对 `progress.md` 也应用同样的每 10 轮压缩规则：改写成更直接的用户摘要，只保留仍与用户需求、当前效果、风险和下一步相关的内容，丢弃不会继续影响工作的旧细节。
+- prompt 必须明确限制活动工作集文件大小：`progress.md` 和 `work_status.md` 目标都应控制在约 300 行内；若任一文件超过约 600 行，该轮必须压缩。
 
-5. Define measurable validation.
-- If the user prompt file already defines validation, keep it as-is.
-- Otherwise, use [validation-catalog.md](references/validation-catalog.md) to add sufficient targeted checks.
-- Ensure each loop round includes at least one executable verification command.
-- Enforce: each checklist item can be marked PASS only after the same check passes in two distinct rounds.
-- Enforce: old PASS is not sticky; new evidence can downgrade PASS to FAIL/IN_PROGRESS.
-- Enforce: if the loop accumulates many rounds, the agent must summarize durable history into
-  `<state-dir>/work_status.md` and rely on that plus recent relevant raw logs.
-- Enforce: current progress/summary files should not grow unbounded; require periodic compaction and archive pointers.
+5. 定义可衡量的验证要求。
+- 如果用户提示词文件已经定义了验证方式，就沿用。
+- 否则，使用 [validation-catalog.md](references/validation-catalog.md) 补充足够的定向检查。
+- 确保每轮至少包含一条可执行的验证命令。
+- 强制规则：每个检查项在当前轮取得一次成功且记录证据后即可标记 PASS。
+- 强制规则：PASS 不是永久有效；后续新证据可以把 PASS 降级为 FAIL 或 IN_PROGRESS。
+- 强制规则：如果轮次很多，代理必须把持久历史压缩进 `<state-dir>/work_status.md`，并优先依赖它和最近相关原始日志。
+- 强制规则：至少每 10 轮，代理必须把陈旧历史重写为围绕当前状态、剩余工作、持久决策和证据指针的非时间线摘要，而不是保留逐轮回顾。
+- 强制规则：至少每 10 轮，代理还必须把 `progress.md` 重写成更紧的用户摘要，避免继续详细描述已完成或临时性的工作。
+- 强制规则：当前的进展 / 摘要文件不能无限增长，必须定期压缩并留下归档指针。
 
-6. Produce runnable outputs.
-- Prepare the fresh worktree during skill execution.
-- Write the final prompt file inside the new state directory:
+6. 产出可直接运行的结果。
+- 在技能执行过程中准备好 fresh worktree。
+- 最终 prompt 文件写入新的状态目录：
   - `<state-dir>/loop_prompt.md`
-- Install the runner in the fresh worktree root:
+- runner 安装到 fresh worktree 根目录：
   - `<worktree>/run_codex_loop.sh`
-- Follow [run-command-patterns.md](references/run-command-patterns.md).
-- Ensure the generated runner file includes baked defaults for:
+- 遵循 [run-command-patterns.md](references/run-command-patterns.md)。
+- 确保生成出的 runner 已内置以下默认值：
   - prompt
   - state
   - original prompt
   - work status
   - progress
   - sleep
-- Prefer returning:
+- 优先返回：
   - `cd <fresh-worktree> && ./run_codex_loop.sh`
-- Ensure the prompt tells the agent to compact/archive stale logs when rounds grow large,
-  while preserving key evidence pointers.
+- 确保 prompt 明确要求：当轮次和日志变大时，要压缩 / 归档陈旧日志，同时保留关键证据指针。
 
-## Reference Loading
+## 参考文件
 
-Load only the needed reference file:
+只按需加载必要的参考文件：
 
-- Use [prompt-template.md](references/prompt-template.md) to wrap the provided prompt file.
-- Use [validation-catalog.md](references/validation-catalog.md) to choose measurable checks.
-- Use [run-command-patterns.md](references/run-command-patterns.md) to format the final command.
-- Use bundled scripts when needed:
+- 用 [prompt-template.md](references/prompt-template.md) 包装用户提供的提示词文件。
+- 用 [validation-catalog.md](references/validation-catalog.md) 选择可衡量的检查方案。
+- 用 [run-command-patterns.md](references/run-command-patterns.md) 组织最终命令格式。
+- 需要时使用内置脚本：
   - `/root/.codex/skills/continuous-loop-prompt/scripts/bootstrap_fresh_loop_worktree.sh`
   - `/root/.codex/skills/continuous-loop-prompt/scripts/install_runner.sh`
 
-## Output Contract
+## 输出约定
 
-Return these items every time:
+每次都返回以下内容：
 
 1. `Worktree Dir`
-- Absolute path to the fresh worktree used for this loop package.
+- fresh worktree 的绝对路径。
 
 2. `Prompt File`
-- Absolute path to the generated prompt file inside the state directory.
+- 状态目录内生成的 prompt 文件绝对路径。
 
 3. `Runnable Command`
-- One shell command only, directly executable, non-interactive, starts the loop immediately.
-- Prefer `cd <fresh-worktree> && ./run_codex_loop.sh`.
-- The command should rely on defaults baked into `run_codex_loop.sh`, not on a long runtime flag list.
+- 只返回一条 shell 命令，必须可直接执行、非交互、能立即启动循环。
+- 优先使用 `cd <fresh-worktree> && ./run_codex_loop.sh`。
+- 命令应依赖 `run_codex_loop.sh` 内置默认值，而不是一长串运行时参数。
 
 4. `Validation Plan`
-- Quick mode checks (per round).
-- Full mode checks (milestone or pre-finish).
-- Pass/fail thresholds.
-- Explicit cross-round validation rule per checklist item (Round A / Round B in different rounds).
-- Explicit rollback rule when prior validation is contradicted by new evidence.
+- Quick 模式检查（每轮）。
+- Full 模式检查（里程碑或收尾）。
+- 通过 / 失败阈值。
+- 明确写出：一次成功且有证据记录的检查即可标记 PASS，但后续若有反证必须撤销 PASS。
+- 明确写出：若后续证据推翻了旧验证，必须如何回滚。
 
 5. `Assumptions And Risks`
-- Explicit unknowns and how the prompt mitigates them.
-- Explicit note on any legacy layout detected and how it was rotated / archived.
+- 明确写出未知项，以及 prompt 如何缓解这些未知。
+- 明确写出是否检测到旧布局，以及它是如何被迁移 / 归档的。
 
-## Quality Gates
+## 质量门禁
 
-Before finalizing:
+在最终输出前，确认以下事项：
 
-1. Confirm fresh-worktree isolation.
-- The loop package is created in a fresh git worktree directory.
-- The returned command starts from that fresh worktree, not from the source repo tree.
+1. 确认 fresh worktree 隔离。
+- 循环包创建在新的 git worktree 目录中。
+- 返回命令从该 fresh worktree 启动，而不是从源仓库目录启动。
 
-2. Confirm layout migration is explicit.
-- The prompt distinguishes the new canonical layout from older legacy layouts.
-- Legacy state artifacts are treated as read-only inputs and rotated to `legacy/` if present.
-- The prompt writes only to the new canonical layout.
+2. 确认布局迁移规则明确。
+- prompt 明确区分新的规范布局和旧的 legacy 布局。
+- 如果存在旧状态产物，它们被当作只读输入，并在需要时转移到 `legacy/`。
+- prompt 只允许往新规范布局写入。
 
-3. Confirm bootstrap inventory is explicit.
-- The prompt requires one or more read-only subagents at loop bootstrap.
-- The prompt explicitly warns that the implementation may already be partially complete.
-- The prompt requires recovered progress to be written into `work_status.md` and `progress.md`.
+3. 确认 bootstrap 盘点要求明确。
+- prompt 要求在 bootstrap 阶段使用一个或多个只读 subagent。
+- prompt 明确提醒：实现可能已经部分完成。
+- prompt 要求把恢复出的已有进展写入 `work_status.md` 和 `progress.md`。
+- prompt 要求在 bootstrap 时记录 loop 起点 commit，并把它作为后续清理过期文件和临时 debug 代码的对照基线。
 
-4. Confirm prompt includes all mandatory sections.
-- Goal, canonical layout, legacy-layout handling, worktree rules, bootstrap inventory,
-  work-status structure, per-round procedure, test policy, update rules, stop criteria.
+4. 确认 prompt 包含所有必需章节。
+- 目标、规范布局、旧布局处理、worktree 规则、bootstrap 盘点、
+  work status 结构、每轮流程、测试策略、更新规则、停止条件。
 
-5. Confirm anti-hallucination behavior is explicit.
-- Require re-scan and re-validation each round.
-- Forbid blind trust in previous logs/messages.
-- Require explicit carry-over of original prompt + previous work-status/check status.
-- Require explicit correction section for wrong prior plans and wrong prior PASS conclusions.
+5. 确认反幻觉行为明确。
+- 要求每轮都重新扫描并重新验证。
+- 禁止盲信先前日志或消息。
+- 要求显式携带原始提示词以及上一轮 work status / 检查状态。
+- 要求提供“纠错”部分，说明哪些旧计划或旧 PASS 结论被修正。
 
-6. Confirm command-path consistency.
-- Prompt path exists inside the state directory.
-- Runner exists in the fresh worktree root.
-- Runner file already contains baked defaults for prompt/state/original-prompt/work-status/progress/sleep.
-- Runner hot-reloads the prompt file on each round when using a prompt file source.
-- State/original-prompt/work-status/progress paths exist or are auto-created by runner.
+6. 确认命令与路径一致。
+- prompt 路径位于状态目录中。
+- runner 位于 fresh worktree 根目录。
+- runner 已经内置 prompt / state / original prompt / work status / progress / sleep 的默认路径。
+- 使用 prompt 文件时，runner 会在每轮热加载该文件。
+- state / original prompt / work status / progress 路径存在，或会由 runner 自动创建。
 
-7. Confirm reproducibility.
-- Command can be copy-run directly.
-- The fresh worktree path is explicit.
+7. 确认可复现。
+- 返回命令可以直接复制执行。
+- fresh worktree 路径明确无歧义。

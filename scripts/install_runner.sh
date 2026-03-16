@@ -3,29 +3,29 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage:
+用法：
   install_runner.sh [options]
 
-Options:
-      --target DIR   Target project directory (default: current directory).
-      --output FILE  Output script path (default: <target>/run_codex_loop.sh).
+参数：
+      --target DIR   目标项目目录（默认：当前目录）。
+      --output FILE  输出脚本路径（默认：<target>/run_codex_loop.sh）。
       --project-root DIR
-                     Baked default project root for generated runner.
-                     Default: absolute path of --target.
+                     生成 runner 时写入的默认项目根目录。
+                     默认：--target 的绝对路径。
       --default-prompt-file FILE
-                     Baked default prompt file. Default: <state-dir>/loop_prompt.md
+                     写入的默认 prompt 文件。默认：<state-dir>/loop_prompt.md
       --default-state-dir DIR
-                     Baked default state dir. Default: <project-root>/.codex-loop-state
+                     写入的默认状态目录。默认：<project-root>/.codex-loop-state
       --default-original-prompt-file FILE
-                     Baked original prompt file. Default: <state-dir>/original_user_prompt.md
+                     写入的原始 prompt 文件。默认：<state-dir>/original_user_prompt.md
       --default-work-status-file FILE
-                     Baked unified work-status file. Default: <state-dir>/work_status.md
+                     写入的统一 work-status 文件。默认：<state-dir>/work_status.md
       --default-progress-file FILE
-                     Baked progress file. Default: <state-dir>/progress.md
+                     写入的 progress 文件。默认：<state-dir>/progress.md
       --default-sleep SECONDS
-                     Baked sleep interval. Default: 0
-  -f, --force        Overwrite existing output file.
-  -h, --help         Show help.
+                     写入的默认休眠间隔。默认：0
+  -f, --force        覆盖已有输出文件。
+  -h, --help         显示帮助。
 EOF
 }
 
@@ -87,7 +87,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "Unknown argument: $1" >&2
+      echo "未知参数：$1" >&2
       usage
       exit 1
       ;;
@@ -127,7 +127,7 @@ if [[ -z "${DEFAULT_PROGRESS_FILE//[[:space:]]/}" ]]; then
 fi
 
 if ! [[ "$DEFAULT_SLEEP_SECONDS" =~ ^[0-9]+$ ]]; then
-  echo "--default-sleep must be a non-negative integer." >&2
+  echo "--default-sleep 必须是非负整数。" >&2
   exit 1
 fi
 
@@ -136,14 +136,14 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SOURCE_FILE="$SKILL_DIR/assets/run_codex_loop.sh"
 
 if [[ ! -f "$SOURCE_FILE" ]]; then
-  echo "Runner template not found: $SOURCE_FILE" >&2
+  echo "未找到 runner 模板：$SOURCE_FILE" >&2
   exit 1
 fi
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 if [[ -e "$OUTPUT_FILE" && "$FORCE" -ne 1 ]]; then
-  echo "Output exists: $OUTPUT_FILE (use --force to overwrite)" >&2
+  echo "输出文件已存在：$OUTPUT_FILE（可使用 --force 覆盖）" >&2
   exit 1
 fi
 
@@ -165,4 +165,4 @@ sed -i \
 
 chmod +x "$OUTPUT_FILE"
 
-echo "Installed runner: $OUTPUT_FILE"
+echo "已安装 runner：$OUTPUT_FILE"

@@ -3,17 +3,17 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage:
+用法：
   bootstrap_fresh_loop_worktree.sh [options]
 
-Options:
-      --source-repo DIR     Source repo / existing worktree to branch from (default: current directory).
-      --worktree-dir DIR    Explicit fresh worktree directory. Default: sibling timestamped directory.
-      --branch NAME         Branch name for the new worktree. Default: codex-loop-<timestamp>.
-      --state-dir-name DIR  State dir name inside the new worktree. Default: .codex-loop-state
-      --runner-output FILE  Runner output path inside the new worktree. Default: <worktree>/run_codex_loop.sh
-      --force               If target directory already exists, rename it to *.legacy.<timestamp>.
-  -h, --help               Show help.
+参数：
+      --source-repo DIR     作为分支起点的源仓库 / 现有 worktree（默认：当前目录）。
+      --worktree-dir DIR    显式指定 fresh worktree 目录。默认：同级时间戳目录。
+      --branch NAME         新 worktree 的分支名。默认：codex-loop-<timestamp>。
+      --state-dir-name DIR  新 worktree 内的状态目录名。默认：.codex-loop-state
+      --runner-output FILE  新 worktree 内 runner 输出路径。默认：<worktree>/run_codex_loop.sh
+      --force               若目标目录已存在，则重命名为 *.legacy.<timestamp>。
+  -h, --help               显示帮助。
 EOF
 }
 
@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "Unknown argument: $1" >&2
+      echo "未知参数：$1" >&2
       usage
       exit 1
       ;;
@@ -85,12 +85,12 @@ fi
 
 if [[ -e "$WORKTREE_DIR" ]]; then
   if git -C "$REPO_ROOT" worktree list --porcelain | rg -Fqx "worktree $WORKTREE_DIR"; then
-    echo "Target directory is already a registered git worktree: $WORKTREE_DIR" >&2
-    echo "Choose a new worktree path instead of rotating it in place." >&2
+    echo "目标目录已经是已注册的 git worktree：$WORKTREE_DIR" >&2
+    echo "请改用新的 worktree 路径，不要原地轮转该目录。" >&2
     exit 1
   fi
   if [[ "$FORCE" -ne 1 ]]; then
-    echo "Target worktree dir already exists: $WORKTREE_DIR (use --force to rotate it aside)" >&2
+    echo "目标 worktree 目录已存在：$WORKTREE_DIR（可使用 --force 先移走旧目录）" >&2
     exit 1
   fi
   mv "$WORKTREE_DIR" "${WORKTREE_DIR}.legacy.${TIMESTAMP}"
