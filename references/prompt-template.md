@@ -22,6 +22,21 @@
 - Last Message：<STATE_DIR>/last_message.txt
 - Legacy Archive：<STATE_DIR>/legacy/
 
+## Runner 管理文件（只读）
+- 以下路径由 runner 自动生成、覆盖或归档，只能读取，不能手动编辑：
+  - <STATE_DIR>/history.log
+  - <STATE_DIR>/last_events.jsonl
+  - <STATE_DIR>/last_message.txt
+  - <STATE_DIR>/prompts/
+  - <STATE_DIR>/events/
+  - <STATE_DIR>/messages/
+  - <ORIGINAL_PROMPT_FILE>
+- 常规状态更新只允许写：
+  - <WORK_STATUS_FILE>
+  - <PROGRESS_FILE>
+- 若用户明确要求维护 loop prompt 或迁移状态布局，可单独修改 `<STATE_DIR>/loop_prompt.md`；否则不要动它。
+- 特别禁止向当前轮的 `events/round-*.jsonl` 写任何内容，也不要把 runner 生成的 event/message 文件当成本轮输出目标。
+
 ## 旧布局（只读迁移来源）
 - 任何旧的 repo-root `loop_prompt.md`
 - 任何拆分的 `todo.md` / `detailed_plan.md`
@@ -157,6 +172,7 @@
 14. 同步改写 `<PROGRESS_FILE>`：用更直接、更短的语言总结对用户仍重要的进展、效果、风险和下一步，不要把大量篇幅花在已完成细节或临时性细节上。
 15. 若本轮新增或清理了文件 / 调试代码，在 `<WORK_STATUS_FILE>` 中补充相对 loop 起点 commit 的对照结论和理由。
 16. 更新 <PROGRESS_FILE>、<WORK_STATUS_FILE>。
+17. 不要手动编辑 runner-managed 文件：`history.log`、`last_events.jsonl`、`last_message.txt`、`prompts/`、`events/`、`messages/`、`original_user_prompt.md`；这些路径仅供读取。
 ```
 
 ## 4）验证策略

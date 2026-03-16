@@ -290,6 +290,30 @@ round_file() {
   printf '%s/round-%04d%s' "$dir" "$round" "$3"
 }
 
+event_json_stream() {
+  local src="$1"
+
+  if [[ ! -f "$src" ]]; then
+    return 1
+  fi
+
+  LC_ALL=C tr -d '\000' < "$src" | jq -cR 'fromjson? | select(type=="object")'
+}
+
+materialize_event_file() {
+  local src="$1"
+  local dst="$2"
+  local tmp=""
+
+  tmp="$(mktemp "${dst}.tmp.XXXXXX")"
+  if ! event_json_stream "$src" > "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+
+  mv "$tmp" "$dst"
+}
+
 compute_next_round() {
   local max_round=0
   local f=""
@@ -317,7 +341,7 @@ handle_interrupt() {
 
   if [[ -n "${CURRENT_EVENT_FILE//[[:space:]]/}" ]] && [[ -f "$CURRENT_EVENT_FILE" ]]; then
     local salvaged_thread=""
-    salvaged_thread="$(jq -s -r 'map(select(.type=="thread.started") | .thread_id) | last // ""' "$CURRENT_EVENT_FILE" 2>/dev/null || true)"
+    salvaged_thread="$(event_json_stream "$CURRENT_EVENT_FILE" | jq -s -r 'map(select(.type=="thread.started") | .thread_id) | last // ""' 2>/dev/null || true)"
     if [[ -n "$salvaged_thread" ]]; then
       printf '%s\n' "$salvaged_thread" > "$THREAD_FILE"
       echo "已从部分事件中恢复并保存 thread_id：$salvaged_thread" >&2
@@ -403,12 +427,14 @@ run_round() {
   local prompt_file=""
   local event_file=""
   local message_file=""
+  local raw_event_file=""
   local -a cmd=()
 
   prompt_file="$(round_file "$PROMPTS_DIR" "$round" ".prompt.txt")"
   event_file="$(round_file "$EVENTS_DIR" "$round" ".jsonl")"
   message_file="$(round_file "$MESSAGES_DIR" "$round" ".txt")"
-  CURRENT_EVENT_FILE="$event_file"
+  raw_event_file="$(mktemp "${TMPDIR:-/tmp}/codex-loop-round-${round}.raw.XXXXXX")"
+  CURRENT_EVENT_FILE="$raw_event_file"
   CURRENT_ROUND="$round"
 
   plan_hash_before="$(sha256sum "$WORK_STATUS_FILE" | awk '{print $1}')"
@@ -425,11 +451,19 @@ run_round() {
   fi
 
   set +e
-  "${cmd[@]}" < "$prompt_file" > "$event_file" 2>&1
+  "${cmd[@]}" < "$prompt_file" > "$raw_event_file" 2>&1
   status=$?
   set -e
 
+  if ! materialize_event_file "$raw_event_file" "$event_file"; then
+    echo "无法把原始事件流转换为 JSONL：$raw_event_file" >&2
+    rm -f "$raw_event_file"
+    exit 1
+  fi
+
   cp "$event_file" "$LAST_EVENTS_FILE"
+  rm -f "$raw_event_file"
+  CURRENT_EVENT_FILE="$event_file"
 
   if (( status != 0 )); then
     {

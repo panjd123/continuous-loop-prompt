@@ -85,6 +85,10 @@ description: >-
   - progress：`<state-dir>/progress.md`
   - work status：`<state-dir>/work_status.md`
   - 历史归档：`<state-dir>/legacy/`
+- prompt 必须显式区分“agent 常规可写状态文件”和“runner 管理只读文件”：
+  - 常规可写：`work_status.md`、`progress.md`
+  - runner 管理只读：`history.log`、`last_events.jsonl`、`last_message.txt`、`prompts/`、`events/`、`messages/`、`original_user_prompt.md`
+- prompt 必须明确禁止代理手动编辑 `events/round-*.jsonl` 或其他 runner 生成的 event/message 文件，避免与 runner 的实时写入冲突。
 - 要求 `progress.md` 保持面向用户且简洁：包含总体状态、已完成 / 进行中 / 尚缺工作、关键效果或指标、开放风险、下一步建议切片。不要把它写成逐轮流水账。
 - 要求 `progress.md` 使用直接、压缩的语言：不要把篇幅浪费在已经完成的实现细节、临时排障笔记，或已不再影响用户目标和下一步工作的内容上。
 - 要求 `work_status.md` 同时包含：
@@ -184,6 +188,7 @@ description: >-
 
 2. 确认布局迁移规则明确。
 - prompt 明确区分新的规范布局和旧的 legacy 布局。
+- prompt 明确区分 agent 常规可写文件与 runner 管理只读文件。
 - 如果存在旧状态产物，它们被当作只读输入，并在需要时转移到 `legacy/`。
 - prompt 只允许往新规范布局写入。
 
